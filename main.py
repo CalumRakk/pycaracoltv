@@ -3,7 +3,7 @@ import m3u8
 import time
 import re
 from bs4 import BeautifulSoup
-from datetime import datetime
+from datetime import datetime,timedelta
 
 headers = {
     'sec-ch-ua': '" Not A;Brand";v="99", "Chromium";v="98", "Google Chrome";v="98"',
@@ -24,7 +24,7 @@ def capture():
   response = requests.get(url, headers=headers)
 
   url = response.text.split()[-1] # url media playlist
-  while datetime.now() < end:      
+  while datetime.now() < (end + timedelta(minutes=10)):      
       response = requests.get(url, headers=headers) # m3u8 media playlist  
       
       m3u8_media = m3u8.loads(response.text) 
@@ -78,5 +78,5 @@ while True:
         difference= start-datetime.now()        
         if difference.days==0:
             print("El programa inicia a las:", start.strftime("%I:%M%p"))
-            time.sleep(difference.seconds)
+            time.sleep(difference.seconds+2)
     
