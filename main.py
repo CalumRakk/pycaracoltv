@@ -1,11 +1,10 @@
-import enum
 import requests
 import m3u8
 import time
 import re
-import os
 from bs4 import BeautifulSoup
-from datetime import date, datetime, timedelta
+from datetime import datetime
+
 headers = {
     'sec-ch-ua': '" Not A;Brand";v="99", "Chromium";v="98", "Google Chrome";v="98"',
     'sec-ch-ua-mobile': '?0',
@@ -45,7 +44,6 @@ def capture():
       time.sleep(75)
       
 response = requests.get("https://www.caracoltv.com/programacion", headers=headers)
-print()
 
 soup = BeautifulSoup(response.text, 'html.parser')
 
@@ -66,7 +64,7 @@ schedule= scheduleDay[user_input-1][1]
 day= datetime.now().day
 moth= datetime.now().month
 year= datetime.now().year
-start= datetime.strptime(f'{4}-{3}-{2022} 08:46pm', '%d-%m-%Y %I:%M%p') #datetime.strptime(f'{day}-{moth}-{year} {schedule.split("-")[0]}', '%d-%m-%Y %I:%M%p')
+start= datetime.strptime(f'{day}-{moth}-{year} {schedule.split("-")[0]}', '%d-%m-%Y %I:%M%p')
 end= datetime.strptime(f'{day}-{moth}-{year} {schedule.split("-")[1]}', '%d-%m-%Y %I:%M%p')
 
 while True:
