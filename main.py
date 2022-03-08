@@ -24,24 +24,21 @@ def capture():
   response = requests.get(url, headers=headers)
 
   url = response.text.split()[-1] # url media playlist
+  day= datetime.now().strftime("%d-%m-%y")
+  start= datetime.now().strftime('%I%M%p')  
+  
+  filename= f"{title} {day}_{start}-{end.strftime('%I%M%p')}.ts"
+  print("Downloading...", filename)
   while datetime.now() < (end + timedelta(minutes=10)):      
-      response = requests.get(url, headers=headers) # m3u8 media playlist  
-      
-      m3u8_media = m3u8.loads(response.text) 
-      regex= re.compile(r'[<>:"/\|*?]') 
-      for segment in m3u8_media.segments:
-          with open(f"{title} {regex.sub(';',schedule)}.ts", "ab") as f:
-              f.write(requests.get(segment.uri, headers=headers).content)
-      
-      # for segment in m3u8_media.segments:
-      #     name= re.search("media.*ts", segment.uri).group()
-      #     if not os.path.exists(name):
-      #         with open(name, "wb") as f:
-      #             f.write(requests.get(segment.uri, headers=headers).content) 
-      #     else:
-      #         print("File already exists: " + name)    
-          
-      time.sleep(75)
+    response = requests.get(url, headers=headers) # m3u8 media playlist  
+
+    m3u8_media = m3u8.loads(response.text) 
+    regex= re.compile(r'[<>:"/\|*?]') 
+    for segment in m3u8_media.segments:
+        with open(filename, "ab") as f:
+            f.write(requests.get(segment.uri, headers=headers).content)
+
+    time.sleep(75)
       
 response = requests.get("https://www.caracoltv.com/programacion", headers=headers)
 
