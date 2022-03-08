@@ -17,33 +17,47 @@ headers = {
     'Sec-Fetch-Dest': 'iframe',
   }
 
+def get_quality(data,user_input):
+    quality={    
+        1: "1280x720",
+        2: "854x480",
+        3: "426x240",
+        
+    }
+    for play in data.playlists:
+        resolution= "x".join(str(item) for item in play.stream_info.resolution)
+        if resolution == quality[user_input]:
+            return (play.uri,resolution)
+    return (data.playlists[-1].uri, "best")      
 def capture():
-  url = "https://mdstrm.com/live-stream-playlist/574463697b9817cf0886fc17.m3u8"
-  
-  # m3u8 master playlist
-  response = requests.get(url, headers=headers)
+    url = "https://mdstrm.com/live-stream-playlist/574463697b9817cf0886fc17.m3u8"
 
-  url = response.text.split()[-1] # url media playlist
-  day= datetime.now().strftime("%d-%m-%y")
-  start= datetime.now().strftime('%I%M%p')  
-  
-  filename= f"{title} {day}_{start}-{end.strftime('%I%M%p')}.ts"
-  print("Downloading...", filename)
-  while datetime.now() < (end + timedelta(minutes=10)):      
-    response = requests.get(url, headers=headers) # m3u8 media playlist  
+    # m3u8 master playlist
+    response = requests.get(url, headers=headers)
 
-    m3u8_media = m3u8.loads(response.text) 
-    regex= re.compile(r'[<>:"/\|*?]') 
-    for segment in m3u8_media.segments:
-        with open(filename, "ab") as f:
-            f.write(requests.get(segment.uri, headers=headers).content)
+    
+    data= m3u8.loads(response.text)    
+            
+    url,resolution = get_quality(data,user_input) # url media playlist
+    day= datetime.now().strftime("%d-%m-%y")
+    start= datetime.now().strftime('%I%M%p')  
+    
+    filename= f"{title} {day}_{start}-{end.strftime('%I%M%p')}_{resolution}.ts"
+    
+    print("Downloading...", filename)
+    while datetime.now() < (end + timedelta(minutes=10)):      
+        response = requests.get(url, headers=headers) # m3u8 media playlist  
 
-    time.sleep(75)
-      
+        m3u8_media = m3u8.loads(response.text) 
+        for segment in m3u8_media.segments:
+            with open(filename, "ab") as f:
+                f.write(requests.get(segment.uri, headers=headers).content)
+        time.sleep(75)
+        
 response = requests.get("https://www.caracoltv.com/programacion", headers=headers)
 
+# Captura la programación del día
 soup = BeautifulSoup(response.text, 'html.parser')
-
 scheduleDay=[]
 for index, tr in enumerate(soup.find('tbody').find_all("tr")):
     index+=1    
@@ -63,6 +77,11 @@ moth= datetime.now().month
 year= datetime.now().year
 start= datetime.strptime(f'{day}-{moth}-{year} {schedule.split("-")[0]}', '%d-%m-%Y %I:%M%p')
 end= datetime.strptime(f'{day}-{moth}-{year} {schedule.split("-")[1]}', '%d-%m-%Y %I:%M%p')
+
+
+print("\n\n*Calidad de la captura:")
+print("1. Alta\n2. Media\n3. Baja")
+user_input= (int(input("\n>>>")))
 
 while True:
     if (datetime.now() >= start) and (datetime.now()< end):
