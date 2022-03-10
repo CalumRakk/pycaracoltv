@@ -1,10 +1,14 @@
+
 import requests
 import m3u8
 import time
-import re
 from bs4 import BeautifulSoup
 from datetime import datetime,timedelta
+from src.win10toast.win10toast import ToastNotifier # pip install -e git+https://github.com/Charnelx/Windows-10-Toast-Notifications.git#egg=win10toast
+from searcher import searcherYouTube
 
+toaster = ToastNotifier()
+   
 headers = {
     'sec-ch-ua': '" Not A;Brand";v="99", "Chromium";v="98", "Google Chrome";v="98"',
     'sec-ch-ua-mobile': '?0',
@@ -95,4 +99,12 @@ while True:
         if difference.days==0:
             print("El programa inicia a las:", start.strftime("%I:%M%p"))
             time.sleep(difference.seconds+2)
-    
+
+
+while True:
+    if searcherYouTube():
+        while True:
+            toaster.show_toast("!Desafío The Box!", "El capítulo se descargo!",
+                               duration=5,
+                               callback_on_click=exit)
+    time.sleep(300) # 5 minutos                
