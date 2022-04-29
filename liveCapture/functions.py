@@ -89,11 +89,21 @@ def get_url():
     url = "https://mdstrm.com/live-stream-playlist/574463697b9817cf0886fc17.m3u8"
 
     # m3u8 master playlist
-    response = requests.get(url, headers=HEADERS)
+    response = requests.get(url, headers=HEADERS)    
     
-    m3u8_media= m3u8.loads(response.text)    
-    return m3u8_media.playlists[-1].uri 
-def download_playlist(url:str)-> None:  
+    if response.status_code==200:
+        m3u8_media= m3u8.loads(response.text)  
+        return m3u8_media.playlists[-1].uri 
+    else:
+        print("respuesta del servidor:", "\n",response.text,"\n")
+        print("La señal en vivo solo está disponible para IP colombianas.")
+        exit()
+
+def download_playlist(url:str)-> None:
+    """
+    Entra a un Bucle y hace una solicitud a la URL de la playlist de segmentos (cada 75 segundos) y descarga los segmentos.
+    url: es una URL que contiene las URLs de los segmentos. 
+    """  
     response = requests.get(url, headers=HEADERS) # m3u8 media playlist  
 
     m3u8_media = m3u8.loads(response.text) 
