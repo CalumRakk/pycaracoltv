@@ -7,6 +7,7 @@ import re
 from typing import List
 import time
 import os
+import sys
 get_filename= re.compile("media_.*?.ts")
 
 OUT= "segments"
@@ -24,7 +25,7 @@ HEADERS = {
     'Sec-Fetch-Dest': 'iframe',
   }
 
-def get_programacion()-> List[dict]:
+def get_tvshow()-> List[dict]:
     response = requests.get("https://www.caracoltv.com/programacion", headers=HEADERS)
 
     # Captura la programación del día
@@ -40,16 +41,21 @@ def get_programacion()-> List[dict]:
         programacion.append(document)
     return programacion
 
-def print_programacion(programacion: List[dict])-> None:
+def print_tvshow(programacion: List[dict])-> None:
+    if sys.platform.startswith('linux'):
+        os.system("clear")
+    else:
+        os.system("cls")
+        
     for index, programa in enumerate(programacion):
         index+=1
         print(index, programa["title"], programa["time"])     
 
-def select_program(programacion:List[dict])-> dict:
+def select_tvshow(programacion:List[dict])-> dict:
     """
     Devuelve el tiempo de esperar para capturar el programa
     """
-    print_programacion(programacion)
+    print_tvshow(programacion)
      
     user_input= int(input("\nSeleccione el programa>>>"))
     index= user_input-1
@@ -76,7 +82,7 @@ def waiting(programa:dict)-> None:
         print("El programa inicia a las:", start.strftime("%I:%M%p"))
         time.sleep(difference.seconds+2)
 
-def get_url(quality):
+def get_url():
     """
     Devuelve la URL en 720p de la transmisión en vivo
     """
@@ -86,7 +92,7 @@ def get_url(quality):
     response = requests.get(url, headers=HEADERS)
     
     m3u8_media= m3u8.loads(response.text)    
-    m3u8_media.playlists[-1].uri 
+    return m3u8_media.playlists[-1].uri 
 def download_playlist(url:str)-> None:  
     response = requests.get(url, headers=HEADERS) # m3u8 media playlist  
 
@@ -119,8 +125,9 @@ def capture(programa:dict):
     
     filename= f"{title} {day}_{start.strftime('%I%M%p')}-{end.strftime('%I%M%p')}+10min.ts"
     
-    while datetime.now() < end:
+    while datetime.now() < end or (end < datetime.now()):
         download_playlist(url) 
+    
     return filename
         
 def concatenate_segments(filename:str)-> None:
@@ -128,7 +135,7 @@ def concatenate_segments(filename:str)-> None:
     filename: nombre final del video.
     """
     filename= filename+EXT_TS
-    path= os.join(os.getcwd(), filename)
+    path= os.path.join(os.getcwd(), filename)
     with open(path, 'wb') as file:  
         for string in os.listdir(OUT):
             path= f"{OUT}/{string}"

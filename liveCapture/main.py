@@ -1,7 +1,7 @@
-from functions import capture,get_programacion, select_program,concatenate_segments
+from .functions import capture,get_tvshow, select_tvshow,concatenate_segments
 
-def run():
-    programacion= get_programacion()
-    programa= select_program(programacion)
+def run():    
+    programacion= get_tvshow()
+    programa= select_tvshow(programacion)
     filename= capture(programa)
     concatenate_segments(filename)
