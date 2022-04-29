@@ -1,0 +1,11 @@
+*.
+*.ts
+*.mp4
+*.mkv
+*.bin
+*.session
+*/
+*SearchVideoYoutube.py
+*concatevideo.py
+!liveCapture
+*test.py
