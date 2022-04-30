@@ -1,7 +1,7 @@
-from .functions import capture,get_tvshow, select_tvshow,concatenate_segments
+from .functions import capture, select_tvshow,concatenate_segments,get_schedule_day
 
 def run():    
-    programacion= get_tvshow()
-    programa= select_tvshow(programacion)
-    filename= capture(programa)
-    concatenate_segments(filename)
+    schedule_day= get_schedule_day()
+    tvshow= select_tvshow(schedule_day)
+    folder = capture(tvshow)
+    concatenate_segments(folder)
