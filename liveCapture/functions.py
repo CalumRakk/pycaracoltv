@@ -75,13 +75,18 @@ def select_tvshow(programacion: List[dict]) -> dict:
         "start": start,
         "end": end,
     }
+    print(":", document["title"],"\n")
     return document
 
 def waiting(programa: dict) -> None:
     """
     Espera hasta que el programa empiece
     """
-    start = datetime.strptime(programa["start"], '%I:%M%p')
+    
+    day= datetime.now().day
+    moth= datetime.now().month
+    year= datetime.now().year
+    start= datetime.strptime(f'{day}-{moth}-{year} {programa["start"]}', '%d-%m-%Y %I:%M%p')
 
     difference = start-datetime.now()
     if difference.days == 0:
@@ -103,12 +108,13 @@ def select_resolution(resolutions: list) -> int:
 
     user_input = int(input("\n>>>"))
     index = user_input-1
+    print(":", resolutions[index], "\n")
     return resolutions[index]
 
 
 def get_url_of_segments():
     """
-    Devuelve la URL de la transmisión en vivo. Es una URL que contiene las URLs de los segmentos.
+    Devuelve la URL de la transmisión en vivo en la resolución especificada. Es una URL que contiene las URLs de los segmentos.
     """
     url = "https://mdstrm.com/live-stream-playlist/574463697b9817cf0886fc17.m3u8"
     # m3u8 master playlist
@@ -131,7 +137,7 @@ def get_url_of_segments():
 
 def download_playlist(url: str, folder) -> None:
     """
-    Entra a un Bucle y hace una solicitud a la URL de la playlist de segmentos (cada 75 segundos) y descarga los segmentos.
+    Hace una solicitud a la URL de la playlist de segmentos y descarga los segmentos devueltos.
     url: es una URL que contiene las URLs de los segmentos. 
     folder: es el path (folder) donde se guardarán los segmentos.
     """
@@ -148,8 +154,6 @@ def download_playlist(url: str, folder) -> None:
             with open(path, 'wb') as f:
                 f.write(requests.get(segment.uri, headers=HEADERS).content)
 
-    time.sleep(75)
-
 
 def capture(tvshow: dict):
     """
@@ -160,21 +164,24 @@ def capture(tvshow: dict):
     """
     url, resolution = get_url_of_segments()
 
-    waiting(tvshow)
-
+    # minutos extras para agregarlos a end porque la finalizaicón del programa no es exacto.
+    extraminutes= 6
     title = tvshow["title"]
-    day = datetime.now().strftime("%d-%m-%y")
-    end = datetime.now().strptime(tvshow["end"], '%I:%M%p')
+    day = datetime.now().strftime("%d-%m-%y")    
+    end = datetime.now().strptime(tvshow["end"], '%I:%M%p') + timedelta(minutes=extraminutes)
     start = datetime.now()
 
-    folder = f"{title} {str(resolution)}_{day}_{start.strftime('%I%M%p')}-{end.strftime('%I%M%p')}+10min"
+    folder = f"{title} {str(resolution)}_{day}_{start.strftime('%I%M%p')}-{end.strftime('%I%M%p')}+{str(extraminutes)}min"
 
     path = os.path.join(SEGMENT_FOLDER, folder)
     if not os.path.exists(path):
         os.makedirs(path)
 
-    while datetime.now() < end or (end < datetime.now()):
+    waiting(tvshow)
+    while end < datetime.now():
+        print("Downloading...", folder, end="\r")
         download_playlist(url, path)
+        time.sleep(75)
 
     return folder
 

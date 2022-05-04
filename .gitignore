@@ -10,3 +10,4 @@
 !liveCapture
 *test.py
 *.txt
+!requirements.txt
