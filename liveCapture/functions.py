@@ -36,7 +36,6 @@ def get_schedule_day()->List[dict]:
     response = requests.get(
         "https://www.caracoltv.com/programacion", headers=HEADERS)
 
-    # Captura la programación del día
     soup = BeautifulSoup(response.text, 'html.parser')
     schedule_day = []
     for tr in soup.find('tbody').find_all("tr"):
@@ -50,9 +49,6 @@ def get_schedule_day()->List[dict]:
     return schedule_day
 
 def select_tvshow(programacion: List[dict]) -> dict:
-    """
-    Devuelve el tiempo de esperar para capturar el programa
-    """
     if sys.platform.startswith('linux'):
         os.system("clear")
     else:
@@ -80,7 +76,7 @@ def select_tvshow(programacion: List[dict]) -> dict:
 
 def waiting(programa: dict) -> None:
     """
-    Espera hasta que el programa empiece
+    Congela el script hasta que el programa empiece
     """
     
     day= datetime.now().day
@@ -93,14 +89,20 @@ def waiting(programa: dict) -> None:
         print("El programa inicia a las:", start.strftime("%I:%M%p"))
         time.sleep(difference.seconds+2)
 
-def get_resolutions_available(m3u8_media: M3U8) -> list:
+def get_resolutions_available(m3u8_media: M3U8) -> List[int]:
+    """
+    Itera sobre un objeto m3u8 (master) para obtener las resoluciones disponibles y devolverla como una lista de enteros.
+    """
     resolutions = []
     for playlist in m3u8_media.playlists:
         resolutions.append(playlist.stream_info.resolution[1])
     return resolutions
 
 
-def select_resolution(resolutions: list) -> int:
+def select_resolution(resolutions: List[int]) -> int:
+    """
+    Itera sobre una lista de enteros y devuelve el entero (resolución) seleccionada por el usuario.
+    """
     print("Seleccione la resolución:")
     for index, resolution in enumerate(resolutions):
         index += 1
@@ -164,7 +166,7 @@ def capture(tvshow: dict):
     """
     url, resolution = get_url_of_segments()
 
-    # minutos extras para agregarlos a end porque la finalizaicón del programa no es exacto.
+    # minutos extras para agregarlos a end porque la finalizaicón del programa no es exacta.
     extraminutes= 6
     title = tvshow["title"]
     day = datetime.now().strftime("%d-%m-%y")    
@@ -188,7 +190,7 @@ def capture(tvshow: dict):
 
 def concatenate_segments(folder) -> None:
     """
-    Concatena todos los segmentos que encuentre en folder, en un archivo .ts
+    Concatena todos los segmentos que encuentre en folder en un archivo .ts
     folder: la carpeta donde estan los segmentos para ser concatenados.
     """
     filename = folder+EXT_TS
