@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 import m3u8
 from m3u8 import M3U8
 import re
+from requests.exceptions import ConnectionError
 
 from typing import List
 import time
@@ -143,18 +144,24 @@ def download_playlist(url: str, folder) -> None:
     url: es una URL que contiene las URLs de los segmentos. 
     folder: es el path (folder) donde se guardarán los segmentos.
     """
-    response = requests.get(url, headers=HEADERS)  # m3u8 media playlist
+    while True:
+        try:
+            response = requests.get(url, headers=HEADERS)  # m3u8 media playlist
 
-    m3u8_media = m3u8.loads(response.text)
+            m3u8_media = m3u8.loads(response.text)
 
-    for segment in m3u8_media.segments:
-        url = segment.uri
+            for segment in m3u8_media.segments:
+                url = segment.uri
 
-        filename = get_filename.search(url).group()
-        path = os.path.join(folder, filename)
-        if not os.path.isfile(path):
-            with open(path, 'wb') as f:
-                f.write(requests.get(segment.uri, headers=HEADERS).content)
+                filename = get_filename.search(url).group()
+                path = os.path.join(folder, filename)
+                if not os.path.isfile(path):
+                    with open(path, 'wb') as f:
+                        f.write(requests.get(segment.uri, headers=HEADERS).content)
+            break
+        except ConnectionError:
+            print("\n\n No se pudo conectar al servidor.")
+            continue
 
 
 def capture(tvshow: dict):
@@ -170,20 +177,21 @@ def capture(tvshow: dict):
     extraminutes= 6
     title = tvshow["title"]
     day = datetime.now().strftime("%d-%m-%y")    
-    end = datetime.now().strptime(tvshow["end"], '%I:%M%p') + timedelta(minutes=extraminutes)
+    ending_time_str= tvshow["end"] +" - "+ datetime.now().strftime("%d %B, %Y") 
+    ending_time_object = datetime.strptime(ending_time_str, "%I:%M%p - %d %B, %Y") + timedelta(minutes=extraminutes)
     start = datetime.now()
 
-    folder = f"{title} {str(resolution)}_{day}_{start.strftime('%I%M%p')}-{end.strftime('%I%M%p')}+{str(extraminutes)}min"
+    folder = f"{title} {str(resolution)}_{day}_{start.strftime('%I%M%p')}-{ending_time_object.strftime('%I%M%p')}+{str(extraminutes)}min"
 
     path = os.path.join(SEGMENT_FOLDER, folder)
     if not os.path.exists(path):
         os.makedirs(path)
 
     waiting(tvshow)
-    while end < datetime.now():
+    while ending_time_object > datetime.now():
         print("Downloading...", folder, end="\r")
         download_playlist(url, path)
-        time.sleep(75)
+        time.sleep(45)
 
     return folder
 
