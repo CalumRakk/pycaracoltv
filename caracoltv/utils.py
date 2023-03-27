@@ -1,5 +1,4 @@
 import requests
-from bs4 import BeautifulSoup
 from datetime import datetime, timedelta
 import m3u8
 from m3u8 import M3U8
@@ -10,6 +9,8 @@ from typing import List
 import time
 import os
 import sys
+import lxml.html
+
 get_filename = re.compile("media_.*?.ts")
 
 SEGMENT_FOLDER = "segments"
@@ -27,53 +28,62 @@ HEADERS = {
     'Sec-Fetch-Dest': 'iframe',
 }
 
+session = requests.Session()
+
 if not os.path.exists(SEGMENT_FOLDER):
     os.makedirs(SEGMENT_FOLDER)
 
+class TvShow:
+    def __init__(self, title, source_time) -> None:
+        self.title= title
+        self.source_time= source_time        
+        self.start_time= source_time.split(" - ")[0]
+        self.end_time= source_time.split(" - ")[1]       
+
+    def get_start_time(self):
+        now_string= datetime.now().strftime('%d-%m-%y')
+        return datetime.strptime(f"{now_string} {self.start_time}", "%d-%m-%y %I:%M %p")
+    def get_end_time(self):
+        now_string= datetime.now().strftime('%d-%m-%y')
+        return datetime.strptime(f"{now_string} {self.end_time}", "%d-%m-%y %I:%M %p")
+    
+    def __str__(self) -> str:
+        return self.title + " - " + self.source_time
+
 def get_schedule_day()->List[dict]:
     """
-    Devuelve la programacion del día actual, como una lista de diccionarios.
+    Devuelve la programacion del día actual, como una lista de TvShow.
     """
-    response = requests.get(
+    response = session.get(
         "https://www.caracoltv.com/programacion", headers=HEADERS)
 
-    soup = BeautifulSoup(response.text, 'html.parser')
+    root = lxml.html.fromstring(response.text)
     schedule_day = []
-    for tr in soup.find('tbody').find_all("tr"):
-        programa, time = tr.find("a").get("title").split("-", 1)
+    for tr in root.xpath('//table[@class="ScheduleDay-table"]')[0].xpath(".//tbody/tr"):
+        td_time, td_programa,  = tr.xpath('.//td')[:2]
 
-        document = {
-            "title": programa.strip(),
-            "time": time.strip(),
-        }
-        schedule_day.append(document)
+        if len(td_programa.xpath(".//a"))>1:
+            title= td_programa.xpath(".//a")[1].text
+        else:
+            title= td_programa.xpath(".//a")[0].text
+        time_string= td_time.text
+        tvshow= TvShow(title=title, source_time=time_string)
+        schedule_day.append(tvshow)
     return schedule_day
 
-def select_tvshow(programacion: List[dict]) -> dict:
+def select_tvshow(schedules: List[TvShow]) -> dict:
     if sys.platform.startswith('linux'):
         os.system("clear")
     else:
         os.system("cls")
         
     print("Seleccione el programa que desea capturar:")
-    for index, programa in enumerate(programacion):
-        index += 1
-        print(index, programa["title"], programa["time"])
+    for index, programa in enumerate(schedules, start=1):
+        print(index, programa)
 
     user_input = int(input("\n>>>"))
     index = user_input-1
-    title = programacion[index]["title"]
-    time = programacion[index]["time"]
-
-    start, end = time.split("-")
-    document = {
-        "title": title,
-        "time": time,
-        "start": start,
-        "end": end,
-    }
-    print(":", document["title"],"\n")
-    return document
+    return schedules[index]
 
 def waiting(programa: dict) -> None:
     """
@@ -167,9 +177,6 @@ def download_playlist(url: str, folder) -> None:
 def capture(tvshow: dict):
     """
     Captura la transmision en vivo  
-
-    tvshow: Diccionario que contiene nombre, hora de inicio y fin del programa    
-    return: devuelve la carpeta donde se guardaron los segmentos
     """
     url, resolution = get_url_of_segments()
 
