@@ -21,9 +21,9 @@ def capture(tvshow, quality):
     while True:        
         response = session.get(url_playlist, headers=HEADERS)  # m3u8 media playlist
         try: 
-            m3u8_playlist = m3u8.lo1ads(response.text)
+            m3u8_playlist = m3u8.loads(response.text)
         except ValueError:
-            # Cuando se está en publicidad las urls de segmentos no funcionan para descargarse
+            # Error 1
             pass
 
         for segment in m3u8_playlist.segments:
