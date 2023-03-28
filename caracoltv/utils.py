@@ -1,18 +1,21 @@
-import requests
-from datetime import datetime, timedelta
-import m3u8
-from m3u8 import M3U8
-import re
-from requests.exceptions import ConnectionError
-
-from typing import List
+from typing import List, TYPE_CHECKING
 import time
 import os
 import sys
+from datetime import datetime, timedelta
+import re
+
+import requests
+from requests.exceptions import ConnectionError
 import lxml.html
+import m3u8
+from m3u8 import M3U8
+if TYPE_CHECKING:
+    from .tvshow import TvShow
 
 get_filename = re.compile("media_.*?.ts")
 
+WORKTABLE = r"D:\.TEMP\caracoltv"
 SEGMENT_FOLDER = "segments"
 EXT_TS = ".ts"
 
@@ -33,32 +36,20 @@ session = requests.Session()
 if not os.path.exists(SEGMENT_FOLDER):
     os.makedirs(SEGMENT_FOLDER)
 
-class TvShow:
-    def __init__(self, title, source_time) -> None:
-        self.title= title or ""
-        self.source_time= source_time        
-        self.start_time= source_time.split(" - ")[0]
-        self.end_time= source_time.split(" - ")[1]       
 
-    def get_start_time(self):
-        now_string= datetime.now().strftime('%d-%m-%y')
-        return datetime.strptime(f"{now_string} {self.start_time}", "%d-%m-%y %I:%M %p")
-    def get_end_time(self):
-        now_string= datetime.now().strftime('%d-%m-%y')
-        return datetime.strptime(f"{now_string} {self.end_time}", "%d-%m-%y %I:%M %p")
-    
-    def __str__(self) -> str:
-        return self.title + " - " + datetime.now().strftime('%d-%m-%y ') + self.source_time
-    
-    def dirname(self):
-        title= self.title.replace(" ","_")
-        time_= self.source_time.replace(" ","").replace(":",".")
-        return f"{self.title}_{datetime.now().strftime('%d-%m-%y')}_{time_}"
+def congelar(segundos):
+    inicio = datetime.now()
+    fin = inicio + timedelta(seconds=segundos)
+    while datetime.now() < fin:
+        segundos_faltantes = int((fin - datetime.now()).total_seconds())
+        print(segundos_faltantes, end='\r')
+        time.sleep(1)
 
 def get_schedule_day()->List[dict]:
     """
     Devuelve la programacion del día actual, como una lista de TvShow.
     """
+    from .tvshow import TvShow
     response = session.get(
         "https://www.caracoltv.com/programacion", headers=HEADERS)
 
@@ -76,7 +67,7 @@ def get_schedule_day()->List[dict]:
         schedule_day.append(tvshow)
     return schedule_day
 
-def select_tvshow(schedules: List[TvShow]) -> dict:
+def select_tvshow(schedules:List['TvShow']):
     if sys.platform.startswith('linux'):
         os.system("clear")
     else:
@@ -90,36 +81,22 @@ def select_tvshow(schedules: List[TvShow]) -> dict:
     index = user_input-1
     return schedules[index]
 
-def waiting(programa: dict) -> None:
-    """
-    Congela el script hasta que el programa empiece
-    """
+def select_resolution() -> int:
+    def get_resolutions_available(m3u8_media: M3U8) -> List[int]:
+        """
+        Itera sobre un objeto m3u8 (master) para obtener las resoluciones disponibles y devolverla como una lista de enteros.
+        """
+        resolutions = []
+        for playlist in m3u8_media.playlists:
+            resolutions.append(playlist.stream_info.resolution[1])
+        return resolutions
     
-    day= datetime.now().day
-    moth= datetime.now().month
-    year= datetime.now().year
-    start= datetime.strptime(f'{day}-{moth}-{year} {programa["start"]}', '%d-%m-%Y %I:%M%p')
+    url = "https://mdstrm.com/live-stream-playlist/574463697b9817cf0886fc17.m3u8"
+    response = session.get(url, headers=HEADERS)
+    m3u8_media = m3u8.loads(response.text)
 
-    difference = start-datetime.now()
-    if difference.days == 0:
-        print("El programa inicia a las:", start.strftime("%I:%M%p"))
-        time.sleep(difference.seconds+2)
-
-def get_resolutions_available(m3u8_media: M3U8) -> List[int]:
-    """
-    Itera sobre un objeto m3u8 (master) para obtener las resoluciones disponibles y devolverla como una lista de enteros.
-    """
-    resolutions = []
-    for playlist in m3u8_media.playlists:
-        resolutions.append(playlist.stream_info.resolution[1])
-    return resolutions
-
-
-def select_resolution(resolutions: List[int]) -> int:
-    """
-    Itera sobre una lista de enteros y devuelve el entero (resolución) seleccionada por el usuario.
-    """
     print("Seleccione la resolución:")
+    resolutions= get_resolutions_available(m3u8_media)
     for index, resolution in enumerate(resolutions):
         index += 1
         print(index, resolution)
@@ -128,29 +105,6 @@ def select_resolution(resolutions: List[int]) -> int:
     index = user_input-1
     print(":", resolutions[index], "\n")
     return resolutions[index]
-
-
-def get_url_of_segments():
-    """
-    Devuelve la URL de la transmisión en vivo en la resolución especificada. Es una URL que contiene las URLs de los segmentos.
-    """
-    url = "https://mdstrm.com/live-stream-playlist/574463697b9817cf0886fc17.m3u8"
-    # m3u8 master playlist
-    response = requests.get(url, headers=HEADERS)
-    if response.status_code == 200:
-        m3u8_media = m3u8.loads(response.text)
-
-        resolutions = get_resolutions_available(m3u8_media)
-        resolution = select_resolution(resolutions)
-
-        for playlist in m3u8_media.playlists:
-            if playlist.stream_info.resolution[1] == resolution:
-                url = playlist.uri
-                return url, resolution
-
-    print("respuesta del servidor:", "\n", response.text, "\n")
-    print("La señal en vivo solo está disponible para IP colombianas.")
-    exit()
 
 
 def download_playlist(url: str, folder) -> None:
@@ -178,35 +132,40 @@ def download_playlist(url: str, folder) -> None:
             print("\n\n No se pudo conectar al servidor.")
             continue
 
-
-def capture(tvshow: dict):
+def capture(tvshow, quality):
     """
-    Captura la transmision en vivo  
+    Captura la transmision en vivo
     """
-    url, resolution = get_url_of_segments()
+    from .folder import Folder
+    
+    title= tvshow.title.replace(" ","_")
+    time_= tvshow.source_time.replace(" ","").replace(":",".")
+    dirname= f"{title}_{quality}p_{datetime.now().strftime('%d-%m-%y')}_{time_}"
+    folder = Folder(os.path.join(WORKTABLE, dirname))
 
-    # minutos extras para agregarlos a end porque la finalizaicón del programa no es exacta.
-    extraminutes= 6
-    title = tvshow["title"]
-    day = datetime.now().strftime("%d-%m-%y")    
-    ending_time_str= tvshow["end"] +" - "+ datetime.now().strftime("%d %B, %Y") 
-    ending_time_object = datetime.strptime(ending_time_str, "%I:%M%p - %d %B, %Y") + timedelta(minutes=extraminutes)
-    start = datetime.now()
+    url = "https://mdstrm.com/live-stream-playlist/574463697b9817cf0886fc17.m3u8"
 
-    folder = f"{title} {str(resolution)}_{day}_{start.strftime('%I%M%p')}-{ending_time_object.strftime('%I%M%p')}+{str(extraminutes)}min"
+    response = session.get(url, headers=HEADERS)
+    m3u8_media = m3u8.loads(response.text)
+    for playlist in m3u8_media.playlists:
+        if playlist.stream_info.resolution[1] == quality:
+            url_playlist = playlist.uri
+            break
 
-    path = os.path.join(SEGMENT_FOLDER, folder)
-    if not os.path.exists(path):
-        os.makedirs(path)
+    while True:
+        response = session.get(url_playlist, headers=HEADERS)  # m3u8 media playlist
+        try:
+            m3u8_playlist = m3u8.loads(response.text)
+            for segment in m3u8_playlist.segments:
+                if not folder.segments.exists(segment):
+                    segment_dict= folder.segments.add(segment)
+                    print(segment_dict["filename"])
 
-    waiting(tvshow)
-    while ending_time_object > datetime.now():
-        print("Downloading...", folder, end="\r")
-        download_playlist(url, path)
-        time.sleep(45)
-
-    return folder
-
+            folder.segments.save()
+        except ValueError:
+            # Error 1
+            pass       
+        congelar(30)
 
 def concatenate_segments(folder) -> None:
     """

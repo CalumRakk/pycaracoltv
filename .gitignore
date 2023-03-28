@@ -5,3 +5,5 @@
 __pycache__
 .env
 segments
+caracol_tv.egg-info/
+test.py
