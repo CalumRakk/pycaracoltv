@@ -33,8 +33,7 @@ HEADERS = {
 
 session = requests.Session()
 
-if not os.path.exists(SEGMENT_FOLDER):
-    os.makedirs(SEGMENT_FOLDER)
+
 
 
 def congelar(segundos):
