@@ -9,15 +9,12 @@ from caracoltv.script import run
 def run_script():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "folder",
+        "carpeta",
         type=str,
-        help="ruta de la carpeta donde se encuentra guardar los archivos",
+        help="ruta de la carpeta donde se guardarán los segmentos",
     )
-    parser.add_argument("-r", "--resolutions", nargs="*", type=check_type_resolution)
+    parser.add_argument("-r", "--resolutions",help="Una lista de resoluciones como numeros enteros", nargs="*", type=check_type_resolution)
 
-    args = parser.parse_args(["segmentos", "-r", "720", "1280","426","640"])
+    args = parser.parse_args()
 
     run(folder=args.folder, resolutions=args.resolutions)
-
-
-run_script()
