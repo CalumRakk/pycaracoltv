@@ -7,3 +7,4 @@ __pycache__
 segments
 caracol_tv.egg-info/
 test.py
+.venv
