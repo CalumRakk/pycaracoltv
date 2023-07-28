@@ -8,3 +8,6 @@ segments
 caracol_tv.egg-info/
 test.py
 .venv
+caracoltv.egg-info
+build
+dist

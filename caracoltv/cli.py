@@ -15,9 +15,6 @@ def run_script():
     )
     parser.add_argument("-r", "--resolutions", nargs="*", type=check_type_resolution)
 
-    args = parser.parse_args(["segmentos", "-r", "720", "1280","426","640"])
+    args = parser.parse_args()
 
     run(folder=args.folder, resolutions=args.resolutions)
-
-
-run_script()
