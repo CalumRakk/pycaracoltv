@@ -5,12 +5,12 @@ import os
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Union, List, Tuple
-
+import json
 import m3u8
 from m3u8 import M3U8
 import requests
 
-from . import HEADERS, HOST
+from .constants import HEADERS, HOST
 
 
 session = requests.Session()
@@ -70,8 +70,17 @@ def ejecutar_tarea(folder, master_m3u8, resolution, segments_descargados: list):
 
 
 def get_master() -> M3U8:
+    # proxies = {
+    #     "http": "200.25.254.193:54240",
+    #     "https": "200.25.254.193:54240",
+    # }
+
     response = session.get(HOST, headers=HEADERS)
-    master_m3u8 = m3u8.loads(response.text)
+    try:
+        print(json.loads(response.text))
+        exit()
+    except json.decoder.JSONDecodeError:
+        master_m3u8 = m3u8.loads(response.text)
     return master_m3u8
 
 
@@ -81,3 +90,64 @@ def check_type_resolution(resolution: List[int]):
         return resolution
     except Exception as e:
         raise TypeError(e)
+
+
+def get_resolutions(master_m3u8):
+    """Devuelve las resoluciones disponibles."""
+    resolutions = []
+    for playlist in master_m3u8.playlists:
+        resolutions.append(playlist.stream_info.resolution[1])
+    return resolutions
+
+
+def check_resolutions(master_m3u8, resolutions: List[int]):
+    """Comprueba que las resoluciones dada por el usuario existan.
+
+    Args:
+        master_m3u8 (M3U8): master contiene la lista de playlist de las diferentes resoluciones
+        resolutions (List[int]): resoluciones dada por el usuario como enteros.
+    """
+    resolutions_not_encontradas = []
+    for resolution in resolutions:
+        exists_resolution = False
+
+        for playlist in master_m3u8.playlists:
+            if resolution in playlist.stream_info.resolution:
+                exists_resolution = True
+                break
+        if not exists_resolution:
+            resolutions_not_encontradas.append(resolution)
+
+    if resolutions_not_encontradas:
+        print(f"No se encontró la resolución dada por el usuario")
+        for resolution in resolutions_not_encontradas:
+            print(resolution)
+
+        print("Estas son las resolutiones disponibles:")
+        for resolution in get_resolutions(master_m3u8):
+            print(resolution)
+        exit()
+
+
+def get_available_qualities(master: M3U8) -> list[int]:
+    """Devuelve las calidades disponibles."""
+    resolutions = []
+    for playlist in master.playlists:
+        resolutions.append(playlist.stream_info.resolution[1])
+    return resolutions
+
+
+def get_playlist(master: M3U8, quality: int) -> M3U8:
+    """Devuelve una playlist con la calidad de video especifico.
+    Una playlist es un m3u8 que contiene una lista de segmentos.
+    """
+    for playlist in master.playlists:
+        if playlist.stream_info.resolution[1] == quality:
+            response = session.get(playlist.uri, headers={})
+            playlist = m3u8.loads(response.text)
+            return playlist
+
+    qualities = get_available_qualities(master)
+    print(f"\nLa calidad {quality} no existe. Las disponibles son: ")
+    for quality in qualities:
+        print("\t", quality)
