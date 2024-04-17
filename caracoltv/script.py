@@ -3,44 +3,7 @@ import m3u8
 import threading
 from typing import List
 
-from .utils import ejecutar_tarea, get_master
-
-
-def get_resolutions(master_m3u8):
-    """Devuelve las resoluciones disponibles."""
-    resolutions = []
-    for playlist in master_m3u8.playlists:
-        resolutions.append(playlist.stream_info.resolution[0])
-    return resolutions
-
-
-def check_resolutions(master_m3u8, resolutions: List[int]):
-    """Comprueba que las resoluciones dada por el usuario existan.
-
-    Args:
-        master_m3u8 (M3U8): master contiene la lista de playlist de las diferentes resoluciones
-        resolutions (List[int]): resoluciones dada por el usuario como enteros.
-    """
-    resolutions_not_encontradas = []
-    for resolution in resolutions:
-        exists_resolution = False
-
-        for playlist in master_m3u8.playlists:
-            if resolution in playlist.stream_info.resolution:
-                exists_resolution = True
-                break
-        if not exists_resolution:
-            resolutions_not_encontradas.append(resolution)
-
-    if resolutions_not_encontradas:
-        print(f"No se encontró la resolución dada por el usuario")
-        for resolution in resolutions_not_encontradas:            
-            print(resolution)
-
-        print("Estas son las resolutiones disponibles:")
-        for resolution in get_resolutions(master_m3u8):
-            print(resolution)
-        exit()
+from .utils import ejecutar_tarea, get_master, check_resolutions
 
 
 def run(folder, resolutions):
@@ -64,5 +27,16 @@ def run(folder, resolutions):
         hilo.start()
 
 
-if __name__ == "__main__":
-    run(resolutions)
+def download_episode(url: str, episode_number: str):
+    serie = Serie(url)
+    for page in serie.page_episodes():
+        article_episodes = page.episodes()
+        for article_episode in article_episodes:
+            if article_episode.episode_number == episode_number:
+                episode = article_episode.get_episode()
+
+                if episode.path.exists():
+                    print(f"Existe: {episode.path}")
+                    continue
+
+                episode.download()

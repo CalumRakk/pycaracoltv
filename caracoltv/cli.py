@@ -9,11 +9,17 @@ from caracoltv.script import run
 def run_script():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "carpeta",
+        "folder",
         type=str,
         help="ruta de la carpeta donde se guardarán los segmentos",
     )
-    parser.add_argument("-r", "--resolutions",help="Una lista de resoluciones como numeros enteros", nargs="*", type=check_type_resolution)
+    parser.add_argument(
+        "-r",
+        "--resolutions",
+        help="Una lista de resoluciones como numeros enteros",
+        nargs="*",
+        type=check_type_resolution,
+    )
 
     args = parser.parse_args()
 
