@@ -2,14 +2,14 @@ from pathlib import Path
 import logging
 import tempfile
 import shutil
-import numpy as np
 from threading import Thread
-from .. import utils
 import threading
 import re
-import urllib.parse
+
+import numpy as np
+
 from ..utils import session
-from ..constants import HEADERS, MAX_EXCEPTION_ATTEMPTS
+from ..constants import MAX_EXCEPTION_ATTEMPTS
 
 logger = logging.getLogger(__name__)
 

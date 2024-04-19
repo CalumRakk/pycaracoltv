@@ -151,3 +151,32 @@ def get_playlist(master: M3U8, quality: int) -> M3U8:
     print(f"\nLa calidad {quality} no existe. Las disponibles son: ")
     for quality in qualities:
         print("\t", quality)
+
+
+def filter_episodes(episodes: list["Episode"], episode_numbers: str) -> list["Episode"]:
+    """Devuelve los capítulos seleccionados por el usuario
+
+    Args:
+        episodes (List[dict]): lista de capítulos
+        episode_numbers (str): Entrada del usuario. Puede ser "todos", un rango un capitulo especifo.
+    Returns:
+        List[dict]: _description_
+    """
+    matchs = []
+    episode_numbers = episode_numbers.lower()
+    if episode_numbers == "todos":
+        return episodes
+    elif episode_numbers.find("-") >= 0:
+        start, end = episode_numbers.split("-")
+        range_of_epidoses = range(int(start), int(end) + 1)
+        for episode in episodes:
+            target = int(episode.name.split(".", 1)[0])
+            if target in range_of_epidoses:
+                matchs.append(episode)
+        return matchs
+
+    for episode in episodes:
+        target: str = episode.name.split(".", 1)[0]
+        if target.startswith(episode_numbers) or target.endswith("0" + episode_numbers):
+            return [episode]
+    raise Exception("No se encontro el episodio")
