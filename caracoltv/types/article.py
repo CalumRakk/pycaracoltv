@@ -13,11 +13,11 @@ class Article:
         serie_url: str,
     ) -> None:
         self.url = url
-        self.title = title
+        self.title = title.strip()
         self.thumbnail = thumbnail
         self.number = number
         self.data_timestamp = data_timestamp
-        self.serie_name = serie_name
+        self.serie_name = serie_name.strip()
         self.serie_url = serie_url
 
     @property

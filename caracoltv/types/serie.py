@@ -1,6 +1,5 @@
 from urllib.parse import urljoin
 import re
-
 import requests
 from lxml import etree
 
@@ -12,7 +11,7 @@ class Serie(Base):
     def __init__(self, url: str) -> None:
         self.url = url
 
-        self._index = 7
+        self._index = 1
 
     @property
     def index(self):
@@ -64,7 +63,7 @@ class Serie(Base):
         return articles
 
     def _extract_articles(self):
-        if self.index == 0:
+        if self.index in [0, 1]:
             return self.extract_articles_from_main_element(self.root)
         else:
             xpath = "//li[@class='TwoColumnContainer3070-column' and @item-columntwo]"
@@ -73,8 +72,9 @@ class Serie(Base):
                 last_column = last_column[0]
                 return self.extract_articles_from_main_element(last_column)
 
-    def iter_chapter_articles(self):
+    def iter_chapter_articles(self) -> list[Article]:
         articles = self._extract_articles()
+        yield articles
         while bool(articles):
             self.next_page()
             articles = self._extract_articles()
