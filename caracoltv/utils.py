@@ -11,6 +11,7 @@ from m3u8 import M3U8
 import requests
 
 from .constants import HEADERS, HOST
+from .types.article import Article
 
 
 session = requests.Session()
@@ -153,30 +154,71 @@ def get_playlist(master: M3U8, quality: int) -> M3U8:
         print("\t", quality)
 
 
-def filter_episodes(episodes: list["Episode"], episode_numbers: str) -> list["Episode"]:
-    """Devuelve los capítulos seleccionados por el usuario
+def filter_articles_by_number(
+    articles: list["Article"], article_number: int
+) -> "Article":
+    """
+    Filtra una lista de artículos por número de artículo.
 
     Args:
-        episodes (List[dict]): lista de capítulos
-        episode_numbers (str): Entrada del usuario. Puede ser "todos", un rango un capitulo especifo.
+        articles (list["Article"]): La lista de artículos a filtrar.
+        article_number (int): El número de artículo a buscar.
+
     Returns:
-        List[dict]: _description_
+        "Article": El artículo que coincide con el número de artículo especificado.
+            Si no se encuentra ningún artículo, devuelve None.
+    """
+    for article in articles:
+        if article_number == article.number:
+            return article
+
+
+def filter_articles_by_range(
+    articles: list["Article"], article_range: str
+) -> list["Article"]:
+    """
+    Filtra una lista de artículos por un rango de números de artículo especificado.
+
+    Args:
+        articles (list["Article"]): La lista de artículos a filtrar.
+        article_range (str): El rango de números de artículo en formato "inicio-fin".
+
+    Returns:
+        list["Article"]: Una lista de artículos que coinciden con el rango especificado.
+
     """
     matchs = []
-    episode_numbers = episode_numbers.lower()
-    if episode_numbers == "todos":
-        return episodes
-    elif episode_numbers.find("-") >= 0:
-        start, end = episode_numbers.split("-")
-        range_of_epidoses = range(int(start), int(end) + 1)
-        for episode in episodes:
-            target = int(episode.name.split(".", 1)[0])
-            if target in range_of_epidoses:
-                matchs.append(episode)
-        return matchs
+    start, end = article_range.split("-")
+    article_numbers = set(range(int(start), int(end) + 1))
+    for article in articles:
+        if article.number in article_numbers:
+            matchs.append(article)
+    return matchs
 
-    for episode in episodes:
-        target: str = episode.name.split(".", 1)[0]
-        if target.startswith(episode_numbers) or target.endswith("0" + episode_numbers):
-            return [episode]
-    raise Exception("No se encontro el episodio")
+
+def filter_articles(articles: list["Article"], filter: str) -> list["Article"]:
+    """
+    Filtra una lista de artículos según el criterio especificado.
+
+    Args:
+        articles (list["Article"]): La lista de artículos a filtrar.
+        filter (str): El criterio de filtrado. Puede ser "todos" para obtener todos los artículos,
+                      un rango de números de artículo (por ejemplo, "1-10") o un número de artículo.
+
+    Returns:
+        list["Article"]: Una lista de artículos que coinciden con el criterio de filtrado especificado.
+
+    Raises:
+        ValueError: Si el formato del filtro es incorrecto.
+    """
+    if filter.lower() in ["todos", "all"]:
+        return articles
+
+    elif "-" in filter:
+        return filter_articles_by_range(articles, filter)
+
+    elif filter.isdigit():
+        return [filter_articles_by_number(articles, int(filter))]
+
+    else:
+        raise ValueError(f"Formato de filtro incorrecto: {filter}")

@@ -110,6 +110,7 @@ class Serie(Base):
         Yields:
             list[Article]: Una lista de objetos de artículo de capítulo.
         """
+
         articles = self._extract_articles()
         yield articles
         while bool(articles):
