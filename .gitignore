@@ -11,3 +11,4 @@ test.py
 caracoltv.egg-info
 build
 dist
+*.rar
