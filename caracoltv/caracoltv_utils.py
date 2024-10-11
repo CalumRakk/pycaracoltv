@@ -13,7 +13,8 @@ def extract_articles(root, index=1):
         title= element.find(".//h2[@class='PromoB-title']//a").text.strip()
         description= element.find(".//h3[@class='PromoB-description']//a").text.strip()
         category= element.find(".//div[@class='PromoB-title-touch']//svg/use").get("xlink:href")
-        thumbnail= element.find(".//div[@class='PromoB-media']//img").get("src")
+        thumbnail= element.find(".//div[@class='PromoB-media']//img").get("srcset").split(",")[-1].split()[0]
+        url= element.find(".//h2[@class='PromoB-title']//a").get("href")
         timestamp= int(string_timestamp)
 
         articles.append({
@@ -21,7 +22,8 @@ def extract_articles(root, index=1):
             "description": description,
             "category": category,
             "thumbnail": thumbnail,
-            "timestamp": timestamp
+            "timestamp": timestamp,
+            "url": url
             })
         
     return articles
