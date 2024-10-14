@@ -125,7 +125,7 @@ def get_pagination_from_root(root=None):
         return urlparse(url)._replace(query=query).geturl()
 
 
-def make_request(url, method_head=False):
+def make_request(url):
     headers = {
         "sec-ch-ua": '"Chromium";v="118", "Brave";v="118", "Not=A?Brand";v="99"',
         "sec-ch-ua-mobile": "?0",
@@ -139,12 +139,6 @@ def make_request(url, method_head=False):
         "Sec-Fetch-User": "?1",
         "Sec-Fetch-Dest": "document",
     }
-    if method_head is True:
-        return requests.head(
-            url=url,
-            headers=headers,
-        )
-
     return requests.get(url=url, headers=headers)
 
 
@@ -171,56 +165,7 @@ def support_section(section):
     else:
         return False
 
-
-def extract_multimedia_data(root):
-    """
-    Extrae las URLs de los videos e imagenes incrustados desde varias fuentes en una página HTML.
-
-    Esta función busca videos de YouTube, MediaStream e imagenes en carruseles (CarouselSlide) en el árbol HTML proporcionado y organiza sus URLs y metadatos en un diccionario categorizado.
-
-    Args:
-        root: Un objeto que representa el árbol del documento HTML.
-
-    Returns:
-        dict: Un diccionario con listas de URLs de videos y diapositivas. Las claves del diccionario son:
-            - "youtube": Lista de URLs de videos de YouTube.
-            - "mediastream": Lista de diccionarios con información de videos MediaStream, incluyendo el título del video, la URL de la playlist y las miniaturas.
-            - "carousel": Lista de URLs de imágenes de carruseles (diapositivas).
-    """
-    videos = {"youtube": [], "mediastream": [], "carousel": []}
-
-    # Youtube
-    elements = root.xpath(".//iframe[@class='YouTubeExternalContentUrl-iframe']")
-    for element in elements:
-        url = element.get("src")
-        videos["youtube"].append(url)
-
-    # MediaStream HSL
-    elements = root.xpath(".//ps-mediastream[@class='MediaStreamVideoPlayer']")
-    for element in elements:
-        data_mediastream = element.find(".//*[@data-mediastream]").get(
-            "data-mediastream"
-        )
-        data = json.loads(data_mediastream)[0]
-        video_title = element.get("data-video-title").strip()
-        playlist_url = f"https://mdstrm.com/embed/{data['videoId']}"
-        thumbnails = [
-            value.split()[0]
-            for value in element.find(".//img").get("srcset").split(",")
-        ]
-        videos["mediastream"].append(
-            {
-                "video_title": video_title,
-                "playlist_url": playlist_url,
-                "thumbnails": thumbnails,
-                "data-mediastream": data,
-            }
-        )
-
-    # CarouselSlide
-    elements = root.xpath(".//div[@class='CarouselSlide-media']")
-    for element in elements:
-        url = element.find(".//img").get("src")
-        videos["carousel"].append(url)
-
-    return videos
+def extract_news_articles(root):
+    for script_element in root.xpath(".//script[@type='application/ld+json']"):
+        if '"@type":"NewsArticle"' in script_element.text:
+            return json.loads(script_element.text)
