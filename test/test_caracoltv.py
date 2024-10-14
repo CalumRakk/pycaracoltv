@@ -1,5 +1,5 @@
 import unittest
-from caracoltv.caracoltv_utils import extract_multimedia_data
+from pycaracoltv.caracoltv_utils import extract_multimedia_data
 from lxml import html
 
 

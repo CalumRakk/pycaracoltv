@@ -213,6 +213,7 @@ def extract_multimedia_data(root):
                 "video_title": video_title,
                 "playlist_url": playlist_url,
                 "thumbnails": thumbnails,
+                "data-mediastream": data,
             }
         )
 
