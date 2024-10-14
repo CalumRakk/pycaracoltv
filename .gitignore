@@ -12,3 +12,4 @@ caracoltv.egg-info
 build
 dist
 *.rar
+*.egg-info
